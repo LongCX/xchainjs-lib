@@ -23,6 +23,8 @@ import {
 } from '@xchainjs/xchain-util'
 import { Wallet } from '@xchainjs/xchain-wallet'
 import axios from 'axios'
+import { readFileSync } from 'fs'
+
 
 import { checkTx } from '../check-tx/check-tx'
 
@@ -39,7 +41,6 @@ function printTx(txDetails: TxDetails, input: CryptoAmount) {
       totalFees: {
         asset: assetToString(txDetails.txEstimate.totalFees.asset),
         outboundFee: txDetails.txEstimate.totalFees.outboundFee.formatedAssetString(),
-        affiliateFee: txDetails.txEstimate.totalFees.affiliateFee.formatedAssetString(),
       },
       slipBasisPoints: txDetails.txEstimate.slipBasisPoints.toFixed(),
       netOutput: txDetails.txEstimate.netOutput.formatedAssetString(),
@@ -73,12 +74,10 @@ const delayedLog = async (message: string, delayMs: number) => {
 
 const doStreamingSwap = async (tcAmm: ThorchainAMM, wallet: Wallet) => {
   try {
-    const amount = process.argv[4]
-    const decimals = Number(process.argv[5])
-    const fromAsset = assetFromString(`${process.argv[6]}`)
-    const toAsset = assetFromString(`${process.argv[7]}`)
-    const streamingInterval = Number(process.argv[8])
-    const streamingQuantity = Number(process.argv[9])
+    const amount = process.argv[3]
+    const decimals = Number(process.argv[4])
+    const fromAsset = assetFromString(`${process.argv[5]}`)
+    const toAsset = assetFromString(`${process.argv[6]}`)
 
     const toChain = toAsset.synth ? THORChain : toAsset.chain
 
@@ -88,15 +87,8 @@ const doStreamingSwap = async (tcAmm: ThorchainAMM, wallet: Wallet) => {
       amount: new CryptoAmount(assetToBase(assetAmount(amount, decimals)), fromAsset),
       destinationAsset: toAsset,
       destinationAddress: await wallet.getAddress(toChain),
-      streamingInterval,
-      streamingQuantity,
-      // toleranceBps: 0, // WARNING: No compatible with Streaming Swap
-    }
-    const affiliateAddress = process.argv[10]
-    if (affiliateAddress) {
-      const affiliateFeeBasisPoints = Number(process.argv[11])
-      swapParams.affiliateAddress = affiliateAddress
-      swapParams.affiliateBps = affiliateFeeBasisPoints
+      streamingInterval: 1,
+      streamingQuantity: 0,
     }
     const outPutCanSwap = await tcAmm.estimateSwap(swapParams)
     printTx(outPutCanSwap, swapParams.amount)
@@ -120,8 +112,9 @@ const doStreamingSwap = async (tcAmm: ThorchainAMM, wallet: Wallet) => {
 }
 
 const main = async () => {
-  const seed = process.argv[2]
-  const network = process.argv[3] as Network
+  const pass = process.argv[2]
+  const keyStore = JSON.parse(readFileSync(`${process.argv[6]}`, 'utf8'))
+  const network = 'mainnet' as Network
   const wallet = new Wallet({
     BTC: new BtcClient({ ...defaultBtcParams, phrase: seed, network }),
     BCH: new BchClient({ ...defaultBchParams, phrase: seed, network }),

@@ -17,10 +17,7 @@ register9Rheader(axios)
 function print(estimate: SwapEstimate, input: CryptoAmount) {
   const expanded = {
     input: input.formatedAssetString(),
-    totalFees: {
-      outboundFee: estimate.totalFees.outboundFee.formatedAssetString(),
-      affiliateFee: estimate.totalFees.affiliateFee.formatedAssetString(),
-    },
+    outboundFee: estimate.totalFees.outboundFee.formatedAssetString(),
     slipBasisPoints: estimate.slipBasisPoints.toFixed(),
     netOutput: estimate.netOutput.formatedAssetString(),
     inboundConfirmationSeconds: estimate.inboundConfirmationSeconds,
@@ -46,35 +43,24 @@ function printTx(txDetails: TxDetails, input: CryptoAmount) {
  */
 const estimateSwap = async () => {
   try {
-    const toleranceBps = 300 //hardcode slip for now
-    const network = process.argv[2] as Network
-    const amount = process.argv[3]
-    const decimals = Number(process.argv[4])
+    const network = 'mainnet' as Network
+    const amount = process.argv[2]
+    const decimals = Number(process.argv[3])
 
-    const fromAsset = assetFromString(`${process.argv[5]}`)
-    const toAsset = assetFromString(`${process.argv[6]}`)
-    const toDestinationAddress = `${process.argv[7]}`
+    const fromAsset = assetFromString(`${process.argv[4]}`)
+    const toAsset = assetFromString(`${process.argv[5]}`)
+    const toDestinationAddress = `${process.argv[6]}`
     const midgardCache = new MidgardCache(new Midgard(network))
     const thorchainCache = new ThorchainCache(new Thornode(network), new MidgardQuery(midgardCache))
     const thorchainQuery = new ThorchainQuery(thorchainCache)
     let swapParams: QuoteSwapParams
-
-    if (process.argv[8] === undefined) {
-      swapParams = {
-        fromAsset,
-        destinationAsset: toAsset,
-        amount: new CryptoAmount(assetToBase(assetAmount(amount, decimals)), fromAsset),
-        destinationAddress: toDestinationAddress,
-        toleranceBps,
-      }
-    } else {
-      swapParams = {
-        fromAsset,
-        destinationAsset: toAsset,
-        amount: new CryptoAmount(assetToBase(assetAmount(amount, decimals)), fromAsset),
-        destinationAddress: toDestinationAddress,
-        toleranceBps,
-      }
+    swapParams = {
+      fromAsset,
+      destinationAsset: toAsset,
+      amount: new CryptoAmount(assetToBase(assetAmount(amount, decimals)), fromAsset),
+      destinationAddress: toDestinationAddress,
+      streamingInterval: 1,
+      streamingQuantity: 0
     }
 
     const estimate = await thorchainQuery.quoteSwap(swapParams)
